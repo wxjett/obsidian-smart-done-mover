@@ -1,6 +1,6 @@
 {
 	"name": "smart-done-mover",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Smart Obsidian task mover with nested task filtering, customizable Done headings, auto mode, and Tasks plugin support.",
 	"main": "main.js",
 	"scripts": {
