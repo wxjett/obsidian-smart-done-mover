@@ -93,6 +93,28 @@ describe("moveCompletedTasks", () => {
 		expect(result.movedCount).toBe(0);
 		expect(result.text).toBe(text);
 	});
+
+	it("moves a cancelled standalone task without appending a completion date", () => {
+		const text = ["- [-] Cancelled", "", "### Done"].join("\n");
+		const result = moveCompletedTasks(text, OPTS);
+		expect(result.movedCount).toBe(1);
+		expect(result.text).toContain("- [-] Cancelled");
+		expect(result.text).not.toContain("Cancelled ✅");
+	});
+
+	it("moves a parent with checked and cancelled sub-tasks", () => {
+		const text = [
+			"- [x] Parent",
+			"  - [x] Finished child",
+			"  - [-] Cancelled child",
+			"",
+			"### Done",
+		].join("\n");
+		const result = moveCompletedTasks(text, OPTS);
+		expect(result.movedCount).toBe(1);
+		expect(result.text).toContain("- [-] Cancelled child");
+		expect(result.text).not.toContain("Cancelled child ✅");
+	});
 });
 
 describe("moveSelectedTasks", () => {
@@ -128,6 +150,14 @@ describe("task filter", () => {
 		expect(result.movedCount).toBe(1);
 		expect(result.text).toContain("- [x] #task Move ✅ 2026-05-15");
 		expect(result.text).toContain("- [x] Leave");
+	});
+
+	it("moves a cancelled filtered task without appending a completion date", () => {
+		const text = ["- [-] #task Cancelled", "", "### Done"].join("\n");
+		const result = moveCompletedTasks(text, FILTERED_OPTS);
+		expect(result.movedCount).toBe(1);
+		expect(result.text).toContain("- [-] #task Cancelled");
+		expect(result.text).not.toContain("Cancelled ✅");
 	});
 
 	it("moves a filtered parent with unfiltered descendants when only the parent is checked", () => {

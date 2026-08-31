@@ -3,7 +3,7 @@
 import { TaskBlock } from "./types";
 
 /** Matches a checkbox task line: indent, state char, rest of the text. */
-export const TASK_RE = /^(\s*)- \[([ xX])\] ?(.*)$/;
+export const TASK_RE = /^(\s*)- \[([ xX-])\] ?(.*)$/;
 
 const HEADING_RE = /^#{1,6}\s+/;
 const CONFIGURED_HEADING_RE = /^(#{1,6})\s+(.+?)\s*$/;
@@ -17,6 +17,8 @@ export interface ParsedLine {
 	indent: number;
 	/** Whether a task line's checkbox is checked. False for non-task lines. */
 	checked: boolean;
+	/** Whether a task is checked or cancelled. False for non-task lines. */
+	ended: boolean;
 }
 
 /** Splits text into lines and remembers the line ending so it can be restored. */
@@ -69,9 +71,16 @@ export function parseLines(lines: string[]): ParsedLine[] {
 				isTask: true,
 				indent: m[1].length,
 				checked: m[2] === "x" || m[2] === "X",
+				ended: m[2] === "x" || m[2] === "X" || m[2] === "-",
 			};
 		}
-		return { raw, isTask: false, indent: leadingWhitespace(raw), checked: false };
+		return {
+			raw,
+			isTask: false,
+			indent: leadingWhitespace(raw),
+			checked: false,
+			ended: false,
+		};
 	});
 }
 
@@ -118,13 +127,13 @@ export function topLevelBlocks(lines: string[], parsed: ParsedLine[]): TaskBlock
 }
 
 /**
- * A block is "fully done" when its root checkbox is checked AND every task
- * line inside the block is checked too.
+ * A block is ready to move when its root task and every task line inside the
+ * block are checked or cancelled.
  */
 export function isBlockFullyDone(parsed: ParsedLine[], block: TaskBlock): boolean {
-	if (!parsed[block.start].isTask || !parsed[block.start].checked) return false;
+	if (!parsed[block.start].isTask || !parsed[block.start].ended) return false;
 	for (let i = block.start; i <= block.end; i++) {
-		if (parsed[i].isTask && !parsed[i].checked) return false;
+		if (parsed[i].isTask && !parsed[i].ended) return false;
 	}
 	return true;
 }

@@ -36,6 +36,14 @@ describe("parseLines", () => {
 		expect(parsed[4].checked).toBe(false);
 		expect(parsed[2].indent).toBe(1);
 	});
+
+	it("recognizes cancelled tasks as ended but not checked", () => {
+		const { lines } = splitLines("- [-] Cancelled");
+		const parsed = parseLines(lines);
+		expect(parsed[0].isTask).toBe(true);
+		expect(parsed[0].checked).toBe(false);
+		expect(parsed[0].ended).toBe(true);
+	});
 });
 
 describe("parseDoneHeading", () => {
@@ -85,6 +93,12 @@ describe("isBlockFullyDone", () => {
 		const { lines } = splitLines(text);
 		const parsed = parseLines(lines);
 		expect(isBlockFullyDone(parsed, { start: 0, end: 1 })).toBe(false);
+	});
+
+	it("is true when cancelled tasks are the only unfinished-looking tasks", () => {
+		const text = ["- [x] Parent", "\t- [-] Cancelled sub-task"].join("\n");
+		const { lines } = splitLines(text);
+		expect(isBlockFullyDone(parseLines(lines), { start: 0, end: 1 })).toBe(true);
 	});
 });
 

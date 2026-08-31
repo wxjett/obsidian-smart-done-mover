@@ -62,8 +62,8 @@ function matchesTaskFilter(line: string, taskFilter: string): boolean {
 
 /**
  * Finds eligible filtered task roots. A root and every filtered descendant
- * must be checked. A task with a filtered ancestor is not a root itself: its
- * outermost filtered ancestor owns the complete task block.
+ * must be checked or cancelled. A task with a filtered ancestor is not a root
+ * itself: its outermost filtered ancestor owns the complete task block.
  */
 function filteredCompletedBlocks(
 	lines: string[],
@@ -82,11 +82,11 @@ function filteredCompletedBlocks(
 		if (hasFilteredAncestor) continue;
 
 		const end = blockEnd(lines, start);
-		if (!parsed[start].checked) continue;
+		if (!parsed[start].ended) continue;
 
 		let complete = true;
 		for (let i = start + 1; i <= end; i++) {
-			if (parsed[i].isTask && matchesTaskFilter(lines[i], taskFilter) && !parsed[i].checked) {
+			if (parsed[i].isTask && matchesTaskFilter(lines[i], taskFilter) && !parsed[i].ended) {
 				complete = false;
 				break;
 			}
