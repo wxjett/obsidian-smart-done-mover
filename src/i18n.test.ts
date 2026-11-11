@@ -6,6 +6,7 @@ describe("getStrings", () => {
 		const strings = getStrings("zh-cn");
 		expect(strings.cmdMoveCompleted).toBe("将已完成任务移至完成区");
 		expect(strings.settingTaskFilterName).toBe("任务筛选");
+		expect(strings.settingRestoreHeadingName).toBe("恢复章节标题");
 		expect(strings.noticeMoved(2, "已完成")).toBe("已将 2 个任务移至“已完成”。");
 	});
 });

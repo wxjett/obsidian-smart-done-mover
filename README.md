@@ -25,6 +25,12 @@ set to Chinese.
   automatically. It also detects task completions written back to source notes
   by the [Tasks](https://publish.obsidian.md/tasks/) plugin after a short
   debounce (about 400 ms or more).
+- **Reopen archived tasks**: auto mode restores a task block in Done as soon as
+  it no longer meets the same completion rules used for archiving. The root
+  task's `➕ YYYY-MM-DD` date identifies the Obsidian daily note. The block is
+  appended under the configured Restore heading. The default uses `# 新增代办`
+  and also recognizes the older `# 新增待办` heading. A missing date, note, or
+  heading leaves the block in Done.
 - **Task filter** (optional): move only tasks matching a text filter such as
   `#task`. The filter applies to auto mode, **Move completed tasks to Done**,
   and **Move selection to Done**.
@@ -51,6 +57,7 @@ set to Chinese.
 |---------|-------------|---------|
 | Auto mode | Move completed tasks automatically | off |
 | Done heading | Target heading. Plain text creates `###`; a Markdown heading keeps its level. | `Done` |
+| Restore heading | Existing daily-note heading for reopened tasks. Enter a name or Markdown heading. | `# 新增代办` |
 | Task filter | Text a task must contain before it can move; empty disables filtering. | empty |
 | Append completion date | Append a `✅` date to moved lines | on |
 | Excluded folders/files | Vault paths (one per line) where auto mode stays inactive | empty |
@@ -68,8 +75,8 @@ set to Chinese.
 
 - The plugin works entirely offline and makes **no network requests**.
 - It collects **no telemetry** and stores no data outside your vault.
-- It only modifies the note in which a move action runs (manually or via
-  auto mode) and never touches other files.
+- Archiving edits the current note. Automatic restoration can also edit the
+  daily note for the task's creation date.
 - Settings are stored in the plugin's `data.json` inside your vault's
   configuration folder.
 - No account, payment, or external service is required.

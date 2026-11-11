@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type DoneMoverPlugin from "../main";
+import { DEFAULT_SETTINGS } from "./types";
 
 export class DoneMoverSettingTab extends PluginSettingTab {
 	plugin: DoneMoverPlugin;
@@ -33,6 +34,19 @@ export class DoneMoverSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.doneHeading)
 					.onChange(async (value) => {
 						this.plugin.settings.doneHeading = value.trim() || "Done";
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName(s.settingRestoreHeadingName)
+			.setDesc(s.settingRestoreHeadingDesc)
+			.addText((text) =>
+				text
+					.setPlaceholder(DEFAULT_SETTINGS.restoreHeading)
+					.setValue(this.plugin.settings.restoreHeading)
+					.onChange(async (value) => {
+						this.plugin.settings.restoreHeading = value.trim() || DEFAULT_SETTINGS.restoreHeading;
 						await this.plugin.saveSettings();
 					})
 			);

@@ -28,6 +28,13 @@ vereinfachtes Chinesisch wenn Obsidian auf Chinesisch eingestellt ist.
   [Tasks](https://publish.obsidian.md/tasks/)-Plugin in die Quellnotiz
   zurückgeschriebene Abschlüsse werden nach einer kurzen Verzögerung
   (mindestens etwa 400 ms) erkannt.
+- **Aufgaben wieder öffnen**: Erfüllt ein Block im Erledigt-Abschnitt die
+  Abschlussbedingungen nicht mehr, verschiebt ihn der Auto-Modus zurück.
+  Das Erstellungsdatum `➕ YYYY-MM-DD` der obersten Aufgabe bestimmt die
+  Tagesnotiz. Der Block wird unter der eingestellten Überschrift zum
+  Wiederherstellen angehängt. Die Vorgabe `# 新增代办` erkennt auch `# 新增待办`.
+  Fehlt das Datum, die Tagesnotiz oder die Überschrift, bleibt der Block im
+  Erledigt-Abschnitt.
 - **Aufgabenfilter** (optional): Verschiebt nur Aufgaben, die einen Textfilter
   wie `#task` enthalten. Der Filter gilt für Auto-Modus, **Erledigte Aufgaben
   nach Done verschieben** und **Auswahl nach Done verschieben**.
@@ -55,6 +62,7 @@ vereinfachtes Chinesisch wenn Obsidian auf Chinesisch eingestellt ist.
 |-------------|--------------|----------|
 | Auto-Modus | Erledigte Aufgaben automatisch verschieben | aus |
 | Done-Überschrift | Zielüberschrift. Klartext erzeugt `###`; Markdown behält die Ebene. | `Done` |
+| Überschrift zum Wiederherstellen | Vorhandene Überschrift in der Tagesnotiz. Ein Name oder eine Markdown-Überschrift ist möglich. | `# 新增代办` |
 | Aufgabenfilter | Text, den eine Aufgabe vor dem Verschieben enthalten muss; leer deaktiviert den Filter. | leer |
 | Erledigt-Datum anhängen | `✅`-Datum an verschobene Zeilen anhängen | an |
 | Ausgeschlossene Ordner/Dateien | Vault-Pfade (einer pro Zeile), in denen der Auto-Modus inaktiv bleibt | leer |
@@ -74,8 +82,8 @@ vereinfachtes Chinesisch wenn Obsidian auf Chinesisch eingestellt ist.
   Netzwerkanfragen**.
 - Es sammelt **keine Telemetrie** und speichert keine Daten außerhalb des
   Vaults.
-- Es verändert nur die Notiz, in der eine Verschiebe-Aktion ausgeführt wird
-  (manuell oder per Auto-Modus), und fasst keine anderen Dateien an.
+- Beim Archivieren wird die aktuelle Notiz geändert. Beim automatischen
+  Wiederöffnen kann auch die Tagesnotiz des Erstellungsdatums geändert werden.
 - Die Einstellungen liegen in der `data.json` des Plugins im
   Konfigurationsordner des Vaults.
 - Kein Konto, keine Zahlung, kein externer Dienst erforderlich.

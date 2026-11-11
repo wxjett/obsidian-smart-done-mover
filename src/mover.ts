@@ -1,6 +1,6 @@
 // Pure task-moving logic — no Obsidian imports, fully unit-testable.
 
-import { MoveOptions, MoveResult, TaskBlock } from "./types";
+import { DEFAULT_SETTINGS, MoveOptions, MoveResult, TaskBlock } from "./types";
 import {
 	TASK_RE,
 	blockEnd,
@@ -11,6 +11,7 @@ import {
 	parseLines,
 	splitLines,
 	topLevelBlocks,
+	type DoneSection,
 } from "./taskParser";
 
 /** Detects an already-present "✅ YYYY-MM-DD" completion date. */
@@ -60,41 +61,95 @@ function matchesTaskFilter(line: string, taskFilter: string): boolean {
 	return line.includes(taskFilter);
 }
 
-/**
- * Finds eligible filtered task roots. A root and every filtered descendant
- * must be checked or cancelled. A task with a filtered ancestor is not a root
- * itself: its outermost filtered ancestor owns the complete task block.
- */
-function filteredCompletedBlocks(
+/** Finds the outermost task blocks that match the active filter. */
+function taskBlocks(
 	lines: string[],
 	parsed: ReturnType<typeof parseLines>,
 	taskFilter: string
 ): TaskBlock[] {
-	const eligible: TaskBlock[] = [];
+	if (!taskFilter) return topLevelBlocks(lines, parsed);
+	const blocks: TaskBlock[] = [];
 	for (let start = 0; start < lines.length; start++) {
 		if (!parsed[start].isTask || !matchesTaskFilter(lines[start], taskFilter)) continue;
-		const hasFilteredAncestor = parsed.slice(0, start).some(
-			(line, index) =>
-				line.isTask &&
-				matchesTaskFilter(lines[index], taskFilter) &&
-				blockEnd(lines, index) >= start
-		);
-		if (hasFilteredAncestor) continue;
-
 		const end = blockEnd(lines, start);
-		if (!parsed[start].ended) continue;
-
-		let complete = true;
-		for (let i = start + 1; i <= end; i++) {
-			if (parsed[i].isTask && matchesTaskFilter(lines[i], taskFilter) && !parsed[i].ended) {
-				complete = false;
-				break;
-			}
-		}
-		if (complete) eligible.push({ start, end });
+		blocks.push({ start, end });
+		start = end;
 	}
+	return blocks;
+}
 
-	return eligible;
+function isTaskBlockEnded(
+	parsed: ReturnType<typeof parseLines>,
+	block: TaskBlock,
+	taskFilter: string
+): boolean {
+	if (!taskFilter) return isBlockFullyDone(parsed, block);
+	for (let i = block.start; i <= block.end; i++) {
+		const line = parsed[i];
+		if (line.isTask && matchesTaskFilter(line.raw, taskFilter) && !line.ended) return false;
+	}
+	return true;
+}
+
+export interface ReopenedTask extends TaskBlock {
+	createdDate: string | undefined;
+	lines: string[];
+}
+
+/** Finds task blocks in Done that no longer meet the archive conditions. */
+export function findReopenedTasks(text: string, doneHeading: string, taskFilter: string): ReopenedTask[] {
+	const { lines } = splitLines(text);
+	const section = findDoneSection(lines, parseDoneHeading(doneHeading).name);
+	if (!section) return [];
+
+	const sectionLines = lines.slice(section.contentStart, section.contentEnd);
+	const parsed = parseLines(sectionLines);
+	return taskBlocks(sectionLines, parsed, taskFilter)
+		.filter((block) => !isTaskBlockEnded(parsed, block, taskFilter))
+		.map(({ start, end }) => ({
+			start: start + section.contentStart,
+			end: end + section.contentStart,
+			createdDate: sectionLines[start].match(/➕\s*(\d{4}-\d{2}-\d{2})(?!\d)/)?.[1],
+			lines: dedent(sectionLines.slice(start, end + 1)).map((line) => {
+				// Keep dates on children that are still completed or cancelled.
+				if (line.match(TASK_RE)?.[2] !== " ") return line;
+				return line.replace(/\s+[✅❌]\s*\d{4}-\d{2}-\d{2}(?!\d)/g, "");
+			}),
+		}));
+}
+
+export function removeTaskBlocks(text: string, blocks: TaskBlock[]): string {
+	const { lines, eol } = splitLines(text);
+	for (const block of [...blocks].sort((a, b) => b.start - a.start)) {
+		lines.splice(block.start, block.end - block.start + 1);
+	}
+	return lines.join(eol);
+}
+
+function sectionInsertion(lines: string[], section: DoneSection, taskLines: string[]) {
+	const after = doneInsertIndex(lines, section);
+	return {
+		after,
+		lines: after === section.headingIndex ? ["", ...taskLines] : taskLines,
+	};
+}
+
+export function insertRestoredTasks(
+	text: string,
+	tasks: ReopenedTask[],
+	doneHeading: string,
+	restoreHeading: string
+): string | null {
+	const { lines, eol } = splitLines(text);
+	const defaultHeading = parseDoneHeading(DEFAULT_SETTINGS.restoreHeading).name;
+	const heading = parseDoneHeading(restoreHeading || DEFAULT_SETTINGS.restoreHeading).name;
+	const section = findDoneSection(lines, heading) ??
+		(heading === defaultHeading ? findDoneSection(lines, "新增待办") : null);
+	const done = findDoneSection(lines, parseDoneHeading(doneHeading).name);
+	if (!section || section.headingIndex === done?.headingIndex) return null;
+	const insertion = sectionInsertion(lines, section, tasks.flatMap((task) => task.lines));
+	lines.splice(insertion.after + 1, 0, ...insertion.lines);
+	return lines.join(eol);
 }
 
 /**
@@ -125,10 +180,10 @@ function performMove(text: string, blocksToMove: TaskBlock[], opts: MoveOptions)
 	const result: string[] = [];
 
 	if (section) {
-		const insertAfter = doneInsertIndex(lines, section);
+		const insertion = sectionInsertion(lines, section, movedLines);
 		for (let i = 0; i < lines.length; i++) {
 			if (!movedSet.has(i)) result.push(lines[i]);
-			if (i === insertAfter) result.push(...movedLines);
+			if (i === insertion.after) result.push(...insertion.lines);
 		}
 	} else {
 		for (let i = 0; i < lines.length; i++) {
@@ -150,9 +205,8 @@ export function moveCompletedTasks(text: string, opts: MoveOptions): MoveResult 
 	const { lines } = splitLines(text);
 	const parsed = parseLines(lines);
 	const section = findDoneSection(lines, parseDoneHeading(opts.doneHeading).name);
-	const candidateBlocks = opts.taskFilter
-		? filteredCompletedBlocks(lines, parsed, opts.taskFilter)
-		: topLevelBlocks(lines, parsed).filter((b) => isBlockFullyDone(parsed, b));
+	const candidateBlocks = taskBlocks(lines, parsed, opts.taskFilter)
+		.filter((block) => isTaskBlockEnded(parsed, block, opts.taskFilter));
 	const blocks = candidateBlocks.filter(
 		(b) => !inDoneSection(b, section)
 	);
@@ -177,9 +231,8 @@ export function moveSelectedTasks(
 	const parsed = parseLines(lines);
 	const section = findDoneSection(lines, parseDoneHeading(opts.doneHeading).name);
 	const { startLine, endLine } = opts.selection;
-	const candidateBlocks = opts.taskFilter
-		? filteredCompletedBlocks(lines, parsed, opts.taskFilter)
-		: topLevelBlocks(lines, parsed);
+	const candidateBlocks = taskBlocks(lines, parsed, opts.taskFilter)
+		.filter((block) => !opts.taskFilter || isTaskBlockEnded(parsed, block, opts.taskFilter));
 	const blocks = candidateBlocks.filter(
 		(b) => !inDoneSection(b, section) && b.start <= endLine && b.end >= startLine
 	);

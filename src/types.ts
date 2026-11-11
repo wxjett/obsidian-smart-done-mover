@@ -5,6 +5,8 @@ export interface DoneMoverSettings {
 	autoMode: boolean;
 	/** Name of the target heading the tasks are moved under (e.g. "Done"). */
 	doneHeading: string;
+	/** Heading in the creation-date daily note where reopened blocks go. */
+	restoreHeading: string;
 	/** When on, a "✅ YYYY-MM-DD" completion date is appended to moved checked lines. */
 	appendCompletionDate: boolean;
 	/** Vault paths (folders or files) in which auto mode stays inactive. */
@@ -16,6 +18,7 @@ export interface DoneMoverSettings {
 export const DEFAULT_SETTINGS: DoneMoverSettings = {
 	autoMode: false,
 	doneHeading: "Done",
+	restoreHeading: "# 新增代办",
 	appendCompletionDate: true,
 	excludedPaths: [],
 	taskFilter: "",

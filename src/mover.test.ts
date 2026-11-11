@@ -75,7 +75,19 @@ describe("moveCompletedTasks", () => {
 		const result = moveCompletedTasks(text, { ...OPTS, doneHeading: "# 已完成" });
 		expect(result.movedCount).toBe(1);
 		expect(result.text).not.toContain("\n# 已完成\n");
-		expect(result.text).toContain("### 已完成\n- [x] Done task ✅ 2026-05-15");
+		expect(result.text).toContain("### 已完成\n\n- [x] Done task ✅ 2026-05-15");
+	});
+
+	it("leaves one blank line above the first task in an empty Done section", () => {
+		const text = "- [x] Finished\n\n### Done\n\n### Journal\n";
+		expect(moveCompletedTasks(text, { ...OPTS, appendDate: false }).text)
+			.toBe("\n### Done\n\n- [x] Finished\n\n### Journal\n");
+	});
+
+	it("appends to an existing Done list without a gap between tasks", () => {
+		const text = "- [x] Finished\n\n### Done\n\n- [x] Earlier\n";
+		expect(moveCompletedTasks(text, { ...OPTS, appendDate: false }).text)
+			.toBe("\n### Done\n\n- [x] Earlier\n- [x] Finished\n");
 	});
 
 	it("does not duplicate an existing completion date", () => {
