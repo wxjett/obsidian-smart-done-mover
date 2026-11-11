@@ -1,7 +1,7 @@
 {
 	"id": "smart-done-mover",
 	"name": "Smart Done Mover",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"minAppVersion": "1.1.0",
 	"description": "Move completed tasks into a customizable Done section with nested task filtering, auto mode, and Tasks plugin support.",
 	"author": "wxjett",
